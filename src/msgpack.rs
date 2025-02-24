@@ -204,21 +204,21 @@ impl MsgUnpack for Dynamic {
             assert_err!(buf.len() < 2, anyhow!("no data"));
             let len = read_8(&buf[1..]) as usize;
             assert_err!(buf.len() < 2 + len, anyhow!("no data"));
-            return Ok(Dynamic::try_from(&buf[2..2 + len]).map(|r| (r, 2 + len))?);
+            return Ok((Dynamic::from_bytes(buf[2..2 + len].to_vec()), 2 + len));
         }
 
         if first_byte == 0xc5 {
             assert_err!(buf.len() < 3, anyhow!("no data"));
             let len = read_16(&buf[1..]) as usize;
             assert_err!(buf.len() < 2 + len, anyhow!("no data"));
-            return Ok(Dynamic::try_from(&buf[3..3 + len]).map(|r| (r, 3 + len))?);
+            return Ok((Dynamic::from_bytes(buf[3..3 + len].to_vec()), 3 + len));
         }
 
         if first_byte == 0xc6 {
             assert_err!(buf.len() < 5, anyhow!("no data"));
             let len = read_32(&buf[1..]) as usize;
             assert_err!(buf.len() < 5 + len, anyhow!("no data"));
-            return Ok(Dynamic::try_from(&buf[5..5 + len]).map(|r| (r, 5 + len))?);
+            return Ok((Dynamic::from_bytes(buf[5..5 + len].to_vec()), 5 + len));
         }
 
         if first_byte == 0xc7 {

@@ -192,7 +192,7 @@ impl From<&str> for Dynamic {
 impl TryFrom<&[u8]> for Dynamic {
     type Error = Utf8Error;
     fn try_from(value: &[u8]) -> std::result::Result<Self, Self::Error> {
-        let s = std::str::from_utf8(value)?;
+        let s = std::str::from_utf8(value).unwrap();
         Ok(Dynamic::from(s))
     }
 }
