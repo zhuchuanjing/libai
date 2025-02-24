@@ -138,22 +138,22 @@ pub trait MsgUnpack: Sized {                        //解码 msgpack 格式的 t
 }
 
 #[inline]
-fn read_8(raw: &[u8]) -> u8 {
+pub(crate) fn read_8(raw: &[u8]) -> u8 {
     raw[0]
 }
 
 #[inline]
-fn read_16(raw: &[u8]) -> u16 {
+pub(crate) fn read_16(raw: &[u8]) -> u16 {
     raw[1] as u16 | (raw[0] as u16) << 8
 }
 
 #[inline]
-fn read_32(raw: &[u8]) -> u32 {
+pub(crate) fn read_32(raw: &[u8]) -> u32 {
     raw[3] as u32 | (raw[2] as u32) << 8 | (raw[1] as u32) << 16 | (raw[0] as u32) << 24
 }
 
 #[inline]
-fn read_64(raw: &[u8]) -> u64 {
+pub(crate) fn read_64(raw: &[u8]) -> u64 {
     raw[7] as u64 | (raw[6] as u64) << 8 | (raw[5] as u64) << 16 | (raw[4] as u64) << 24 | (raw[3] as u64) << 32 | (raw[2] as u64) << 40 | (raw[1] as u64) << 48 | (raw[0] as u64) << 56
 }
 

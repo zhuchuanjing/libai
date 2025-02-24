@@ -15,5 +15,9 @@ fn main() -> Result<()> {
     obj.encode(&mut buf);
     let obj = Dynamic::decode(buf.as_slice());
     println!("{} {:?}", buf.len(), obj);
+    let value = rune::Value::from(&obj.unwrap().0);
+    println!("{:?}", value);
+    let d = Dynamic::from(&value);
+    println!("{:?}", d);
     Ok(())
 }

@@ -1,6 +1,7 @@
 pub mod dynamic;
 pub mod json;
 pub mod msgpack;
+pub mod rune;
 
 use anyhow::{Result, anyhow};
 pub fn skip_white(buf: &[u8]) -> Result<usize> {

@@ -1,6 +1,6 @@
 [package]
 name = "libai"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "AI 开发用到的一些基础数据结构"
 license = "MIT OR Apache-2.0"
@@ -10,3 +10,4 @@ repository = "https://github.com/zhuchuanjing/libai"
 anyhow = "1.0.96"
 smol_str = "0.3.2"
 byteorder = "1.5"
+rune = "0.13.4"
