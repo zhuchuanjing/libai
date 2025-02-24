@@ -39,6 +39,10 @@ impl Dynamic {
         Self::Array(Arc::new(RwLock::new(vec)))
     }
 
+    pub fn from_bytes(vec: Vec<u8>)-> Self {
+        Self::Bytes(Arc::new(vec))
+    }
+
     pub fn as_str(&self)-> Result<&str> {
         match self {
             Self::String(s)=> Ok(s.as_str()),
@@ -214,5 +218,50 @@ impl From<i64> for Dynamic {
 impl From<Vec<Dynamic>> for Dynamic {
     fn from(v: Vec<Dynamic>)-> Self {
         Self::from_vec(v)
+    }
+}
+
+impl PartialEq for Dynamic {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            Self::Null=> {
+                if let Self::Null = other { true }
+                else { false }
+            }
+            Self::Bool(b)=> {
+                if let Self::Bool(o) = other { *b == * o }
+                else { false }
+            }
+            Self::Byte(b)=> {
+                if let Self::Byte(o) = other { *b == * o }
+                else { false }
+            }
+            Self::Int(b)=> {
+                if let Self::Int(o) = other { *b == * o }
+                else { false }
+            }
+            Self::UInt(b)=> {
+                if let Self::UInt(o) = other { *b == * o }
+                else { false }
+            }
+            Self::Float(b)=> {
+                if let Self::Float(o) = other { *b == * o }
+                else { false }
+            }
+            Self::Double(b)=> {
+                if let Self::Double(o) = other { *b == * o }
+                else { false }
+            }
+            Self::String(s1)=> {
+                if let Self::String(s2) = other { s1.eq(s2) }
+                else { false }
+            }
+            Self::Array(_)=> false,
+            Self::Object(_)=> false,
+            Self::Bytes(b1)=> {
+                if let Self::Bytes(b2) = other { b1.as_slice() == b2.as_slice() }
+                else { false }
+            }
+        }
     }
 }
