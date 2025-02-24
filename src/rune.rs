@@ -162,9 +162,71 @@ macro_rules! object {
     }};
 }
 
-use super::json::ToJson;
-use rune::runtime::Object;
+use super::json::{FromJson, ToJson};
+use super::skip_white;
+impl FromJson for Value {
+    fn from_json(buf: &[u8])-> Result<(Self, usize)> {
+        let mut pos = skip_white(buf)?;
+        if buf[pos] == b'[' {           //是一个 vec
+            pos += 1;
+            pos += skip_white(&buf[pos..])?;
+            let mut vec = rune::alloc::Vec::<Self>::new();
+            while buf[pos] != b']' {
+                let (item, size) = Self::from_json(&buf[pos..])?;
+                vec.try_push(item)?;
+                pos += size;
+                pos += skip_white(&buf[pos..])?;
+                if buf[pos] == b',' {
+                    pos += 1;
+                    pos += skip_white(&buf[pos..])?;
+                }
+            };
+            Ok((vec.to_value().unwrap(), pos + 1))
+        } else if buf[pos] == b'{' {           //是一个 object
+            pos += 1;
+            pos += skip_white(&buf[pos..])?;
+            let mut obj = rune::runtime::Object::new();
+            while buf[pos] != b'}' {
+                assert_err!(buf[pos] != b'"', anyhow!("need a string key"));
+                let (key, size) = Self::get_string(&buf[pos..])?;
+                pos += size;
+                pos += skip_white(&buf[pos..])?;
+                assert_err!(buf[pos] != b':', anyhow!("need a :"));
+                pos += 1;
+                pos += skip_white(&buf[pos..])?;
+                let (item, size) = Self::from_json(&buf[pos..])?;
+                obj.insert(str_to_rune(key.as_str()), item)?;
+                pos += size;
+                pos += skip_white(&buf[pos..])?;
+                if buf[pos] == b',' {
+                    pos += 1;
+                    pos += skip_white(&buf[pos..])?;
+                }
+            }
+            Ok((obj.to_value().unwrap(), pos + 1))
+        } else if buf[pos] == b'"' {
+            let (s, size) = Self::get_string(&buf[pos..])?;
+            Ok((str_to_rune(s.as_str()).to_value().into_result()?, size))
+        } else {
+            let (token, size) = Self::get_token(&buf[pos..])?;
+            if token == "true" {
+                Ok((Value::from(true), size))
+            } else if token == "false" {
+                Ok((Value::from(false), size))
+            } else if token == "null" {
+                Ok((Value::from(()), size))
+            } else if token.contains('.') {
+                let v = token.parse::<f64>()?;
+                Ok((Value::from(v), size))
+            } else {
+                let v = token.parse::<i64>()?;
+                Ok((Value::from(v), size))
+            }
+        }
+    }
+}
 
+use rune::runtime::Object;
 impl ToJson for Object {
     fn to_json(&self, buf: &mut String) {
         buf.push('{');
