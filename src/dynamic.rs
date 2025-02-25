@@ -3,8 +3,9 @@ use smol_str::SmolStr;
 use std::collections::BTreeMap;
 use anyhow::{Result, anyhow};
 
+use rune::Any;
 //自己定义一个 Dynamic 类型 支持 不同脚本语言的类型的自由转化
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Any)]
 pub enum Dynamic {
     Null,
     Bool(bool),
@@ -65,6 +66,25 @@ impl Dynamic {
         }
     }
     
+    pub fn is_bool(&self)-> bool {
+        match self {
+            Self::Bool(_)=> true,
+            _=> false
+        }
+    }
+    pub fn is_array(&self)-> bool {
+        match self {
+            Self::Array(_)=> true,
+            _=> false
+        }
+    }
+    pub fn is_object(&self)-> bool {
+        match self {
+            Self::Object(_)=> true,
+            _=> false
+        }
+    }
+
     pub fn as_bool(&self)-> Result<bool> {
         match self {
             Self::Bool(b)=> Ok(*b),
