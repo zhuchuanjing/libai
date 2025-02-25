@@ -27,8 +27,10 @@ impl From<&Value> for Dynamic {
                 Self::Object(Arc::new(RwLock::new(objec))) 
             },
             Value::Bytes(b)=> Self::Bytes(Arc::new(b.borrow_ref().unwrap().as_slice().to_vec())),
-            v=> {
-                println!("{:?}", v);
+            Value::Any(any_obj)=> {     //转换回 dynamic
+                any_obj.downcast_borrow_ref::<Dynamic>().map(|obj| obj.clone() ).unwrap_or(Self::Null)
+            }
+            _=> {
                 Self::Null
             }
         }
