@@ -3,7 +3,6 @@ use libai::dynamic::Dynamic;
 use libai::dynamic;
 use libai::json::ToJson;
 use libai::msgpack::{MsgPack, MsgUnpack};
-use rune::Value;
 
 fn main() -> Result<()> {
     let obj = dynamic!("name"=> "zhu", "age"=>10, "other"=>vec![Dynamic::from(10), Dynamic::from("aa"), Dynamic::from(30.0)]);
@@ -16,9 +15,9 @@ fn main() -> Result<()> {
     obj.encode(&mut buf);
     let obj = Dynamic::decode(buf.as_slice());
     println!("{} {:?}", buf.len(), obj);
-    let value = rune::Value::from(&obj.unwrap().0);
+    let value = rune::Value::from(obj.unwrap().0);
     println!("{:?}", value);
-    let d = Dynamic::from(&value);
+    let d = Dynamic::from(value);
     println!("{:?}", d);
     let b1 = Dynamic::from_bytes(vec![1,2,3,4,5]);
     let b2 = Dynamic::from_bytes(vec![1,2,3,4,5]);
