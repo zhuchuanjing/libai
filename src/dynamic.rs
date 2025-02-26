@@ -23,6 +23,12 @@ pub enum Dynamic {
 unsafe impl Send for Dynamic {}
 unsafe impl Sync for Dynamic {}
 
+impl Default for Dynamic {
+    fn default() -> Self {
+        Self::Null
+    } 
+}
+
 impl Dynamic {
     pub fn object()-> Self {
         Self::Object(Arc::new(RwLock::new(BTreeMap::new())))
@@ -39,7 +45,7 @@ impl Dynamic {
     pub fn from_vec(vec: Vec<Dynamic>)-> Self {
         Self::Array(Arc::new(RwLock::new(vec)))
     }
-
+    
     pub fn from_bytes(vec: Vec<u8>)-> Self {
         Self::Bytes(Arc::new(vec))
     }

@@ -6,29 +6,29 @@ use std::sync::{Arc, RwLock};
 use smol_str::SmolStr;
 use std::collections::BTreeMap;
 
-impl From<&Value> for Dynamic {
-    fn from(value: &Value)-> Self {
+impl From<Value> for Dynamic {
+    fn from(value: Value)-> Self {
         match value {
             Value::EmptyTuple | Value::EmptyStruct(_)=> Self::Null,
-            Value::Bool(b)=> Self::Bool(*b),
-            Value::Byte(b)=> Self::Byte(*b),
-            Value::Integer(i)=> Self::Int(*i),
-            Value::Float(f)=> Self::Double(*f),
+            Value::Bool(b)=> Self::Bool(b),
+            Value::Byte(b)=> Self::Byte(b),
+            Value::Integer(i)=> Self::Int(i),
+            Value::Float(f)=> Self::Double(f),
             Value::String(s)=> Self::String(Arc::new(SmolStr::new(s.borrow_ref().unwrap().as_str()))),
             Value::Vec(v)=> {
-                let array: Vec<Dynamic> = v.borrow_ref().unwrap().iter().map(|v| Self::from(v) ).collect();
+                let array: Vec<Dynamic> = v.take().unwrap().into_iter().map(|v| Self::from(v) ).collect();
                 Self::Array(Arc::new(RwLock::new(array)))
             },
             Value::Object(o)=> {
                 let mut objec = BTreeMap::new();
-                o.borrow_ref().unwrap().iter().for_each(|(k, v)| {
-                    objec.insert(SmolStr::new(k.as_str()), Self::from(v) );
+                o.take().unwrap().into_iter().for_each(|(k, v)| {
+                    objec.insert(SmolStr::from(k.into_std()), Self::from(v) );
                 });
                 Self::Object(Arc::new(RwLock::new(objec))) 
             },
-            Value::Bytes(b)=> Self::Bytes(Arc::new(b.borrow_ref().unwrap().as_slice().to_vec())),
-            v=> {
-                println!("{:?}", v);
+            Value::Bytes(b)=> Self::Bytes(Arc::new(b.take().unwrap().into_vec().into_std())),
+            Value::Any(any_obj)=> if let Ok(obj) = any_obj.take_downcast::<Dynamic>() { obj } else { Dynamic::Null}
+            _=> {
                 Self::Null
             }
         }
@@ -45,33 +45,33 @@ pub fn bytes_to_rune(bytes: &[u8])-> rune::alloc::String {
     unsafe {rune::alloc::String::from_utf8_unchecked(rune::alloc::Vec::try_from(bytes).unwrap()) }
 }
 
-impl From<&Dynamic> for Value {
-    fn from(d: &Dynamic) -> Self {
+impl From<Dynamic> for Value {
+    fn from(d: Dynamic) -> Self {
         match d {
             Dynamic::Null=> Value::EmptyTuple,
-            Dynamic::Bool(b)=> Value::Bool(*b),
-            Dynamic::Byte(b)=> Value::Byte(*b),
-            Dynamic::Int(i)=> Value::Integer(*i),
-            Dynamic::UInt(u)=> Value::Integer(*u as i64),
-            Dynamic::Float(f)=> Value::Float(*f as f64),
-            Dynamic::Double(f)=> Value::Float(*f),
+            Dynamic::Bool(b)=> Value::Bool(b),
+            Dynamic::Byte(b)=> Value::Byte(b),
+            Dynamic::Int(i)=> Value::Integer(i),
+            Dynamic::UInt(u)=> Value::Integer(u as i64),
+            Dynamic::Float(f)=> Value::Float(f as f64),
+            Dynamic::Double(f)=> Value::Float(f),
             Dynamic::String(s)=> str_to_rune(s.as_str()).to_value().unwrap(),
             Dynamic::Array(array)=> {
-                let array = array.read().unwrap().iter().fold(rune::alloc::Vec::default(), |mut v, a| {
-                    v.try_push(Self::from(a)).unwrap();
-                    v
-                });
-                array.to_value().unwrap()
+                let mut vec = rune::alloc::Vec::try_with_capacity(array.read().unwrap().len()).unwrap();
+                while let Some(item) = array.write().unwrap().pop() {
+                    vec.try_push(Self::from(item)).unwrap();
+                }
+                vec.to_value().unwrap()
             },
             Dynamic::Object(object)=> {
-                let object = object.read().unwrap().iter().fold(rune::runtime::Object::default(), |mut obj, (k, v)| {
-                    obj.insert(str_to_rune(k.as_str()), Self::from(v)).unwrap();
-                    obj
-                });
-                object.to_value().unwrap()
+                let mut objs = rune::runtime::Object::default();
+                while let Some((k, v)) = object.write().unwrap().pop_first() {
+                    objs.insert(str_to_rune(k.as_str()), Self::from(v)).unwrap();
+                }
+                objs.to_value().unwrap()
             },
             Dynamic::Bytes(b)=> {
-                b.as_slice().to_vec().to_value().unwrap()
+                b.to_vec().to_value().unwrap()
             },
         }
     }
@@ -229,7 +229,7 @@ impl FromJson for Value {
     }
 }
 
-use rune::runtime::Object;
+use rune::runtime::{Bytes, Object};
 impl ToJson for Object {
     fn to_json(&self, buf: &mut String) {
         buf.push('{');
