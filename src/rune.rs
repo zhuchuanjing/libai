@@ -57,18 +57,18 @@ impl From<&Dynamic> for Value {
             Dynamic::Double(f)=> Value::Float(*f),
             Dynamic::String(s)=> str_to_rune(s.as_str()).to_value().unwrap(),
             Dynamic::Array(array)=> {
-                let mut vec = rune::alloc::Vec::new();
-                while let Some(item) = array.read().unwrap().iter().next() {
-                    vec.try_push(Self::from(item)).unwrap();
-                }
-                vec.to_value().unwrap()
+                let array = array.read().unwrap().iter().fold(rune::alloc::Vec::default(), |mut v, a| {
+                    v.try_push(Self::from(a)).unwrap();
+                    v
+                });
+                array.to_value().unwrap()
             },
             Dynamic::Object(object)=> {
-                let mut objs = rune::runtime::Object::default();
-                while let Some((k, v)) = object.read().unwrap().iter().next() {
-                    objs.insert(str_to_rune(k.as_str()), Self::from(v)).unwrap();
-                }
-                objs.to_value().unwrap()
+                let object = object.read().unwrap().iter().fold(rune::runtime::Object::default(), |mut obj, (k, v)| {
+                    obj.insert(str_to_rune(k.as_str()), Self::from(v)).unwrap();
+                    obj
+                });
+                object.to_value().unwrap()
             },
             Dynamic::Bytes(b)=> {
                 b.to_vec().to_value().unwrap()
