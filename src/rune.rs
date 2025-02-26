@@ -57,7 +57,7 @@ impl From<Dynamic> for Value {
             Dynamic::Double(f)=> Value::Float(f),
             Dynamic::String(s)=> str_to_rune(s.as_str()).to_value().unwrap(),
             Dynamic::Array(array)=> {
-                let mut vec = rune::alloc::Vec::try_with_capacity(array.read().unwrap().len()).unwrap();
+                let mut vec = rune::alloc::Vec::new();
                 while let Some(item) = array.read().unwrap().iter().next() {
                     vec.try_push(Self::from(item.clone())).unwrap();
                 }
