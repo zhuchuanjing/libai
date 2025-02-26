@@ -16,18 +16,18 @@ impl From<Value> for Dynamic {
             Value::Float(f)=> Self::Double(f),
             Value::String(s)=> Self::String(Arc::new(SmolStr::new(s.borrow_ref().unwrap().as_str()))),
             Value::Vec(v)=> {
-                let array: Vec<Dynamic> = v.take().unwrap().into_iter().map(|v| Self::from(v) ).collect();
+                let array: Vec<Dynamic> = v.borrow_ref().unwrap().iter().map(|v| Self::from(v.clone()) ).collect();     //Shared<T> Clone 是一个 cheap 操作
                 Self::Array(Arc::new(RwLock::new(array)))
             },
             Value::Object(o)=> {
                 let mut objec = BTreeMap::new();
-                o.take().unwrap().into_iter().for_each(|(k, v)| {
-                    objec.insert(SmolStr::from(k.into_std()), Self::from(v) );
+                o.borrow_ref().unwrap().iter().for_each(|(k, v)| {
+                    objec.insert(SmolStr::from(k.as_str()), Self::from(v.clone()) );
                 });
                 Self::Object(Arc::new(RwLock::new(objec))) 
             },
-            Value::Bytes(b)=> Self::Bytes(Arc::new(b.take().unwrap().into_vec().into_std())),
-            Value::Any(any_obj)=> if let Ok(obj) = any_obj.take_downcast::<Dynamic>() { obj } else { Dynamic::Null}
+            Value::Bytes(b)=> Self::Bytes(Arc::new(b.borrow_ref().unwrap().to_vec())),
+            Value::Any(any_obj)=> if let Ok(obj) = any_obj.take_downcast::<Dynamic>() { obj } else { Dynamic::Null}     //一次性转换
             _=> {
                 Self::Null
             }
@@ -58,15 +58,15 @@ impl From<Dynamic> for Value {
             Dynamic::String(s)=> str_to_rune(s.as_str()).to_value().unwrap(),
             Dynamic::Array(array)=> {
                 let mut vec = rune::alloc::Vec::try_with_capacity(array.read().unwrap().len()).unwrap();
-                while let Some(item) = array.write().unwrap().pop() {
-                    vec.try_push(Self::from(item)).unwrap();
+                while let Some(item) = array.read().unwrap().iter().next() {
+                    vec.try_push(Self::from(item.clone())).unwrap();
                 }
                 vec.to_value().unwrap()
             },
             Dynamic::Object(object)=> {
                 let mut objs = rune::runtime::Object::default();
-                while let Some((k, v)) = object.write().unwrap().pop_first() {
-                    objs.insert(str_to_rune(k.as_str()), Self::from(v)).unwrap();
+                while let Some((k, v)) = object.read().unwrap().iter().next() {
+                    objs.insert(str_to_rune(k.as_str()), Self::from(v.clone())).unwrap();
                 }
                 objs.to_value().unwrap()
             },
