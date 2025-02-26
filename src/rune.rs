@@ -6,28 +6,28 @@ use std::sync::{Arc, RwLock};
 use smol_str::SmolStr;
 use std::collections::BTreeMap;
 
-impl From<Value> for Dynamic {
-    fn from(value: Value)-> Self {
+impl From<&Value> for Dynamic {
+    fn from(value: &Value)-> Self {
         match value {
             Value::EmptyTuple | Value::EmptyStruct(_)=> Self::Null,
-            Value::Bool(b)=> Self::Bool(b),
-            Value::Byte(b)=> Self::Byte(b),
-            Value::Integer(i)=> Self::Int(i),
-            Value::Float(f)=> Self::Double(f),
+            Value::Bool(b)=> Self::Bool(*b),
+            Value::Byte(b)=> Self::Byte(*b),
+            Value::Integer(i)=> Self::Int(*i),
+            Value::Float(f)=> Self::Double(*f),
             Value::String(s)=> Self::String(Arc::new(SmolStr::new(s.borrow_ref().unwrap().as_str()))),
             Value::Vec(v)=> {
-                let array: Vec<Dynamic> = v.borrow_ref().unwrap().iter().map(|v| Self::from(v.clone()) ).collect();     //Shared<T> Clone 是一个 cheap 操作
+                let array: Vec<Dynamic> = v.borrow_ref().unwrap().iter().map(|v| Self::from(v) ).collect();     //Shared<T> Clone 是一个 cheap 操作
                 Self::Array(Arc::new(RwLock::new(array)))
             },
             Value::Object(o)=> {
                 let mut objec = BTreeMap::new();
                 o.borrow_ref().unwrap().iter().for_each(|(k, v)| {
-                    objec.insert(SmolStr::from(k.as_str()), Self::from(v.clone()) );
+                    objec.insert(SmolStr::from(k.as_str()), Self::from(v) );
                 });
                 Self::Object(Arc::new(RwLock::new(objec))) 
             },
             Value::Bytes(b)=> Self::Bytes(Arc::new(b.borrow_ref().unwrap().to_vec())),
-            Value::Any(any_obj)=> if let Ok(obj) = any_obj.take_downcast::<Dynamic>() { obj } else { Dynamic::Null}     //一次性转换
+            Value::Any(any_obj)=> if let Ok(obj) = any_obj.clone().take_downcast::<Dynamic>() { obj } else { Dynamic::Null}     //一次性转换
             _=> {
                 Self::Null
             }
@@ -45,28 +45,28 @@ pub fn bytes_to_rune(bytes: &[u8])-> rune::alloc::String {
     unsafe {rune::alloc::String::from_utf8_unchecked(rune::alloc::Vec::try_from(bytes).unwrap()) }
 }
 
-impl From<Dynamic> for Value {
-    fn from(d: Dynamic) -> Self {
+impl From<&Dynamic> for Value {
+    fn from(d: &Dynamic) -> Self {
         match d {
             Dynamic::Null=> Value::EmptyTuple,
-            Dynamic::Bool(b)=> Value::Bool(b),
-            Dynamic::Byte(b)=> Value::Byte(b),
-            Dynamic::Int(i)=> Value::Integer(i),
-            Dynamic::UInt(u)=> Value::Integer(u as i64),
-            Dynamic::Float(f)=> Value::Float(f as f64),
-            Dynamic::Double(f)=> Value::Float(f),
+            Dynamic::Bool(b)=> Value::Bool(*b),
+            Dynamic::Byte(b)=> Value::Byte(*b),
+            Dynamic::Int(i)=> Value::Integer(*i),
+            Dynamic::UInt(u)=> Value::Integer(*u as i64),
+            Dynamic::Float(f)=> Value::Float(*f as f64),
+            Dynamic::Double(f)=> Value::Float(*f),
             Dynamic::String(s)=> str_to_rune(s.as_str()).to_value().unwrap(),
             Dynamic::Array(array)=> {
                 let mut vec = rune::alloc::Vec::new();
                 while let Some(item) = array.read().unwrap().iter().next() {
-                    vec.try_push(Self::from(item.clone())).unwrap();
+                    vec.try_push(Self::from(item)).unwrap();
                 }
                 vec.to_value().unwrap()
             },
             Dynamic::Object(object)=> {
                 let mut objs = rune::runtime::Object::default();
                 while let Some((k, v)) = object.read().unwrap().iter().next() {
-                    objs.insert(str_to_rune(k.as_str()), Self::from(v.clone())).unwrap();
+                    objs.insert(str_to_rune(k.as_str()), Self::from(v)).unwrap();
                 }
                 objs.to_value().unwrap()
             },
