@@ -3,7 +3,6 @@ use libai::dynamic::Dynamic;
 use libai::dynamic;
 use libai::json::ToJson;
 use libai::msgpack::{MsgPack, MsgUnpack};
-use rune::Value;
 
 fn main() -> Result<()> {
     let obj = dynamic!("name"=> "zhu", "age"=>10, "other"=>vec![Dynamic::from(10), Dynamic::from("aa"), Dynamic::from(30.0)]);

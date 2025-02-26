@@ -16,20 +16,18 @@ impl From<&Value> for Dynamic {
             Value::Float(f)=> Self::Double(*f),
             Value::String(s)=> Self::String(Arc::new(SmolStr::new(s.borrow_ref().unwrap().as_str()))),
             Value::Vec(v)=> {
-                let array: Vec<Dynamic> = v.borrow_ref().unwrap().iter().map(|v| Self::from(v) ).collect();
+                let array: Vec<Dynamic> = v.borrow_ref().unwrap().iter().map(|v| Self::from(v) ).collect();     //Shared<T> Clone 是一个 cheap 操作
                 Self::Array(Arc::new(RwLock::new(array)))
             },
             Value::Object(o)=> {
                 let mut objec = BTreeMap::new();
                 o.borrow_ref().unwrap().iter().for_each(|(k, v)| {
-                    objec.insert(SmolStr::new(k.as_str()), Self::from(v) );
+                    objec.insert(SmolStr::from(k.as_str()), Self::from(v) );
                 });
                 Self::Object(Arc::new(RwLock::new(objec))) 
             },
-            Value::Bytes(b)=> Self::Bytes(Arc::new(b.borrow_ref().unwrap().as_slice().to_vec())),
-            Value::Any(any_obj)=> {     //转换回 dynamic
-                any_obj.downcast_borrow_ref::<Dynamic>().map(|obj| obj.clone() ).unwrap_or(Self::Null)
-            }
+            Value::Bytes(b)=> Self::Bytes(Arc::new(b.borrow_ref().unwrap().to_vec())),
+            Value::Any(any_obj)=> if let Ok(obj) = any_obj.clone().take_downcast::<Dynamic>() { obj } else { Dynamic::Null}     //一次性转换
             _=> {
                 Self::Null
             }
@@ -73,7 +71,7 @@ impl From<&Dynamic> for Value {
                 object.to_value().unwrap()
             },
             Dynamic::Bytes(b)=> {
-                b.as_slice().to_vec().to_value().unwrap()
+                b.to_vec().to_value().unwrap()
             },
         }
     }
@@ -231,7 +229,7 @@ impl FromJson for Value {
     }
 }
 
-use rune::runtime::Object;
+use rune::runtime::{Bytes, Object};
 impl ToJson for Object {
     fn to_json(&self, buf: &mut String) {
         buf.push('{');
