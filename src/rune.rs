@@ -27,6 +27,13 @@ impl From<&Value> for Dynamic {
                 Self::Object(Arc::new(RwLock::new(objec))) 
             },
             Value::Bytes(b)=> Self::Bytes(Arc::new(b.borrow_ref().unwrap().to_vec())),
+            Value::Tuple(tuple)=> {
+                let mut array = Vec::new();
+                for item in tuple.borrow_ref().unwrap().iter() {
+                    array.push(Self::from(item));
+                }
+                Dynamic::from_vec(array)
+            }
             Value::Any(any_obj)=> if let Ok(obj) = any_obj.clone().take_downcast::<Dynamic>() { obj } else { Dynamic::Null}     //一次性转换
             _=> {
                 Self::Null

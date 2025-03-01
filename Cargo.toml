@@ -1,6 +1,6 @@
 [package]
 name = "libai"
-version = "0.2.10"
+version = "0.2.11"
 edition = "2021"
 description = "AI 开发用到的一些基础数据结构"
 license = "MIT OR Apache-2.0"
