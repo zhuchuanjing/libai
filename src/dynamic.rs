@@ -50,6 +50,20 @@ impl Dynamic {
         Self::Bytes(Arc::new(vec))
     }
 
+    pub fn is_null(&self)-> bool {
+        match self {
+            Self::Null=> true,
+            _=> false
+        }
+    }
+    
+    pub fn is_string(&self)-> bool {
+        match self {
+            Self::String(_)=> true,
+            _=> false
+        }
+    }
+    
     pub fn as_str(&self)-> Result<&str> {
         match self {
             Self::String(s)=> Ok(s.as_str()),
