@@ -86,6 +86,13 @@ impl Dynamic {
         }
     }
     
+    pub fn into_array(self)-> Result<Vec<Dynamic>> {
+        match self {
+            Self::Array(array)=> Ok(array.read().unwrap().clone()),
+            _=> Err(anyhow!("not a array"))
+        }
+    }
+
     pub fn is_bool(&self)-> bool {
         match self {
             Self::Bool(_)=> true,

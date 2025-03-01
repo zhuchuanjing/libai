@@ -24,5 +24,8 @@ fn main() -> Result<()> {
     let b3 = Dynamic::from_bytes(vec![1,2,3,4,5,6]);
     let b4 = Dynamic::from_bytes(vec![1,2,0,4,5]);
     println!("{} {} {} {}", b1 == b2, b1 == b3, b1 == b4, b2 == b1);
+    let ddd = Dynamic::from_vec(vec![Dynamic::from(1), Dynamic::from(2), Dynamic::from("aaaaaa")]);
+    let dvec = ddd.into_array().unwrap();
+    println!("{:?}", dvec);
     Ok(())
 }
