@@ -158,7 +158,7 @@ impl ToJson for Dynamic {
             Self::Int(i) => i.to_json(buf),
             Self::Null => buf.push_str("null"),
             Self::String(s) => s.as_str().to_json(buf),
-            Self::Array(a) => {
+            Self::Vec(a) => {
                 buf.push('[');
                 let mut once = super::ZOnce::new("", ",\n");
                 a.read().unwrap().iter().for_each(|item| {
@@ -167,10 +167,10 @@ impl ToJson for Dynamic {
                 });
                 buf.push(']');
             }
-            Self::Object(o) => {
+            Self::Map(m) => {
                 buf.push('{');
                 let mut once = super::ZOnce::new("", ",\n");
-                o.read().unwrap().iter().for_each(|(k, v)| {
+                m.read().unwrap().iter().for_each(|(k, v)| {
                     buf.push_str(once.take());
                     k.as_str().to_json(buf);
                     buf.push_str(": ");

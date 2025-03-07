@@ -89,7 +89,7 @@ impl MsgPack for Dynamic {
                 }
                 buf.extend_from_slice(raw.as_slice());
             }
-            Dynamic::Array(raw) => {
+            Dynamic::Vec(raw) => {
                 let length = raw.read().unwrap().len();
                 if length < 0x10 {
                       buf.push(0x90 | length as u8);
@@ -102,7 +102,7 @@ impl MsgPack for Dynamic {
                 }
                 raw.read().unwrap().iter().for_each(|item| item.encode(buf));
             }
-            Dynamic::Object(raw) => {
+            Dynamic::Map(raw) => {
                 let length = raw.read().unwrap().len();
                 if length < 16 {
                     buf.push(0x80 | length as u8);

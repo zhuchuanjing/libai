@@ -3,9 +3,8 @@ use smol_str::SmolStr;
 use std::collections::BTreeMap;
 use anyhow::{Result, anyhow};
 
-use rune::Any;
 //自己定义一个 Dynamic 类型 支持 不同脚本语言的类型的自由转化
-#[derive(Debug, Clone, Any)]
+#[derive(Debug, Clone)]
 pub enum Dynamic {
     Null,
     Bool(bool),
@@ -15,8 +14,8 @@ pub enum Dynamic {
     Float(f32),
     Double(f64),
     String(Arc<SmolStr>),                           //----上面这些值可以直接修改
-    Array(Arc<RwLock<Vec<Dynamic>>>),
-    Object(Arc<RwLock<BTreeMap<SmolStr, Dynamic>>>),
+    Vec(Arc<RwLock<Vec<Dynamic>>>),
+    Map(Arc<RwLock<BTreeMap<SmolStr, Dynamic>>>),
     Bytes(Arc<Vec<u8>>),
 }
 
@@ -30,20 +29,20 @@ impl Default for Dynamic {
 }
 
 impl Dynamic {
-    pub fn object()-> Self {
-        Self::Object(Arc::new(RwLock::new(BTreeMap::new())))
+    pub fn map()-> Self {
+        Self::Map(Arc::new(RwLock::new(BTreeMap::new())))
     }
 
     pub fn from_map(map: BTreeMap<SmolStr, Dynamic>)-> Self {
-        Self::Object(Arc::new(RwLock::new(map)))
+        Self::Map(Arc::new(RwLock::new(map)))
     }
 
-    pub fn array()-> Self {
-        Self::Array(Arc::new(RwLock::new(Vec::new())))
+    pub fn vec()-> Self {
+        Self::Vec(Arc::new(RwLock::new(Vec::new())))
     }
 
     pub fn from_vec(vec: Vec<Dynamic>)-> Self {
-        Self::Array(Arc::new(RwLock::new(vec)))
+        Self::Vec(Arc::new(RwLock::new(vec)))
     }
     
     pub fn from_bytes(vec: Vec<u8>)-> Self {
@@ -86,10 +85,10 @@ impl Dynamic {
         }
     }
     
-    pub fn into_array(self)-> Result<Vec<Dynamic>> {
+    pub fn into_vec(self)-> Result<Vec<Dynamic>> {
         match self {
-            Self::Array(array)=> Ok(array.read().unwrap().clone()),
-            _=> Err(anyhow!("not a array"))
+            Self::Vec(v)=> Ok(v.read().unwrap().clone()),
+            _=> Err(anyhow!("not a Vec"))
         }
     }
 
@@ -99,15 +98,15 @@ impl Dynamic {
             _=> false
         }
     }
-    pub fn is_array(&self)-> bool {
+    pub fn is_vec(&self)-> bool {
         match self {
-            Self::Array(_)=> true,
+            Self::Vec(_)=> true,
             _=> false
         }
     }
-    pub fn is_object(&self)-> bool {
+    pub fn is_map(&self)-> bool {
         match self {
-            Self::Object(_)=> true,
+            Self::Map(_)=> true,
             _=> false
         }
     }
@@ -121,105 +120,105 @@ impl Dynamic {
     
     pub fn len(&self)-> Result<usize> {
         match self {
-            Self::Array(array)=> {
-                Ok(array.read().unwrap().len())
+            Self::Vec(v)=> {
+                Ok(v.read().unwrap().len())
             },
-            Self::Object(obj)=> {
-                Ok(obj.read().unwrap().len())
+            Self::Map(m)=> {
+                Ok(m.read().unwrap().len())
             },
-            _=> Err(anyhow!("is not a array"))
+            _=> Err(anyhow!("is not a Vec"))
         }
     }
     
     pub fn get(&self, index: usize)-> Result<Dynamic> {
         match self {
-            Self::Array(array)=> {
-                array.read().unwrap().get(index).map(|item| item.clone() ).ok_or(anyhow!("index {} is outbound", index))
+            Self::Vec(v)=> {
+                v.read().unwrap().get(index).map(|item| item.clone() ).ok_or(anyhow!("index {} is outbound", index))
             },
-            _=> Err(anyhow!("is not a array"))
+            _=> Err(anyhow!("is not a Vec"))
         }
     }
 
     pub fn push<T: Into<Dynamic>>(&self, val: T)-> Result<()> {
         match self {
-            Self::Array(array)=> {
-                array.write().unwrap().push(val.into());
+            Self::Vec(v)=> {
+                v.write().unwrap().push(val.into());
                 Ok(())
             },
-            _=> Err(anyhow!("is not a array"))
+            _=> Err(anyhow!("is not a Vec"))
         }
     }
 
     pub fn pop(&self)-> Result<Dynamic> {
         match self {
-            Self::Array(array)=> {
-                array.write().unwrap().pop().ok_or(anyhow!("no more items"))
+            Self::Vec(v)=> {
+                v.write().unwrap().pop().ok_or(anyhow!("no more items"))
             },
-            _=> Err(anyhow!("is not a array"))
+            _=> Err(anyhow!("is not a Vec"))
         }
     }
 
     pub fn get_key(&self, key: &str)-> Result<Dynamic> {
         match self {
-            Self::Object(obj)=> {
-                obj.read().unwrap().get(key).map(|item| item.clone() ).ok_or(anyhow!("key {} is not existed", key))
+            Self::Map(m)=> {
+                m.read().unwrap().get(key).map(|item| item.clone() ).ok_or(anyhow!("key {} is not existed", key))
             },
-            _=> Err(anyhow!("is not a object"))
+            _=> Err(anyhow!("is not a Map"))
         }      
     }
     
     pub fn set_key<T: Into<Dynamic>>(&self, key: &str, val: T)-> Result<Option<Dynamic>> {
         match self {
-            Self::Object(obj)=> {
-                Ok(obj.write().unwrap().insert(SmolStr::new(key), val.into()))
+            Self::Map(m)=> {
+                Ok(m.write().unwrap().insert(SmolStr::new(key), val.into()))
             },
-            _=> Err(anyhow!("is not a object"))
+            _=> Err(anyhow!("is not a Map"))
         }      
     }
 
     pub fn remove_key(&self, key: &str)-> Result<Option<Dynamic>> {
         match self {
-            Self::Object(obj)=> {
-                Ok(obj.write().unwrap().remove(key))
+            Self::Map(m)=> {
+                Ok(m.write().unwrap().remove(key))
             },
-            _=> Err(anyhow!("is not a object"))
+            _=> Err(anyhow!("is not a Map"))
         }      
     }     
 
     pub fn contains(&self, key: &str)-> Result<bool> {
         match self {
-            Self::Object(obj)=> {
-                Ok(obj.read().unwrap().contains_key(key))
+            Self::Map(m)=> {
+                Ok(m.read().unwrap().contains_key(key))
             },
-            _=> Err(anyhow!("is not a object"))
+            _=> Err(anyhow!("is not a Map"))
         }      
     }  
     
     pub fn append(&self, other: &Dynamic)-> Result<()> {
         match self {
-            Self::Object(obj)=> {
+            Self::Map(m)=> {
                 match other {
-                    Self::Object(other)=> {
+                    Self::Map(other)=> {
                         for kv in other.read().unwrap().iter() {
-                            obj.write().unwrap().insert(kv.0.clone(), kv.1.clone());
+                            m.write().unwrap().insert(kv.0.clone(), kv.1.clone());
                         }
                         Ok(())
                     },
-                    _=> Err(anyhow!("other is not a object"))
+                    _=> Err(anyhow!("other is not a Map"))
                 }
             },
-            Self::Array(array)=> {
+            Self::Vec(v)=> {
                 match other {
-                    Self::Array(other)=> {
+                    Self::Vec(other)=> {
                         for item in other.read().unwrap().iter() {
-                            array.write().unwrap().push(item.clone());
+                            v.write().unwrap().push(item.clone());
                         }
                         Ok(())
                     }
-                    _=> Err(anyhow!("other is not a array"))
+                    _=> Err(anyhow!("other is not a Vec"))
                 }
             }
-            _=> Err(anyhow!("is not a object"))
+            _=> Err(anyhow!("is not a Map"))
         }      
     }  
 }
@@ -303,8 +302,8 @@ impl PartialEq for Dynamic {
                 if let Self::String(s2) = other { s1.eq(s2) }
                 else { false }
             }
-            Self::Array(_)=> false,
-            Self::Object(_)=> false,
+            Self::Vec(_)=> false,
+            Self::Map(_)=> false,
             Self::Bytes(b1)=> {
                 if let Self::Bytes(b2) = other { b1.as_slice() == b2.as_slice() }
                 else { false }

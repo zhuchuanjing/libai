@@ -1,7 +1,6 @@
 pub mod dynamic;
 pub mod json;
 pub mod msgpack;
-pub mod rune;
 
 use anyhow::{Result, anyhow};
 pub fn skip_white(buf: &[u8]) -> Result<usize> {
@@ -49,10 +48,21 @@ macro_rules! assert_err {
 }
 
 #[macro_export]
-macro_rules! dynamic {
+macro_rules! dmap {
     ($($k:expr => $v:expr), *) => {{
-        let mut obj = std::collections::BTreeMap::new();
-        $( let _ = obj.insert(smol_str::SmolStr::from($k), Dynamic::from($v)); )*
-        Dynamic::from_map(obj)
+        let mut map = std::collections::BTreeMap::new();
+        $( let _ = map.insert(smol_str::SmolStr::from($k), Dynamic::from($v)); )*
+        Dynamic::from_map(map)
+    }};
+}
+
+#[macro_export]
+macro_rules! dvec {
+    ($($value:expr),*) => {{
+        let mut vec = Dynamic::vec();
+        $(
+            let _ = vec.push(Dynamic::from($value));
+        )*
+        vec
     }};
 }
